@@ -1,7 +1,10 @@
 //package p
 package main
 
+
+
 import (
+	ccc "Main.go/Basic"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -13,6 +16,11 @@ import (
 )
 
 func main() {
+
+
+	// bsc.Mnemo()
+	ccc.Mnemo()
+
 	println("Main")
 	ctx := context.Background()
 	funcframework.RegisterHTTPFunctionContext(ctx, "/", HelloWorld)
