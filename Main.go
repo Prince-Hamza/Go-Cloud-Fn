@@ -1,105 +1,90 @@
 //package p
+
 package main
 
-
-
 import (
-	ccc "Main.go/Basic"
-	"bytes"
+	ApiSet "Main.go/Core/Api"
+	SuperJsonSet "Main.go/Core/SuperJson"
+	WooApiSet "Main.go/Core/WoocommerceApi"
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/GoogleCloudPlatform/functions-framework-go/funcframework"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"reflect"
+	"time"
+
+	"github.com/GoogleCloudPlatform/functions-framework-go/funcframework"
 )
 
+//Api.Get("https://firewallforce.se/wp-json/wc/v3/products/44780?consumer_key=ck_42a75ce7a233bc1e341e33779723c304e6d820cc&consumer_secret=cs_6e5a683ab5f08b62aa1894d8d2ddc4ad69ff0526&_fields=id,sku")
+
 func main() {
-
-
-	// bsc.Mnemo()
-	ccc.Mnemo()
-
 	println("Main")
 	ctx := context.Background()
-	funcframework.RegisterHTTPFunctionContext(ctx, "/", HelloWorld)
+	funcframework.RegisterHTTPFunctionContext(ctx, "/", updateFirewallForce)
 	funcframework.Start("8080")
 }
 
-func HelloWorld(w http.ResponseWriter, r *http.Request) {
+func updateFirewallForce(res http.ResponseWriter, req *http.Request) {
 
-	println("Hello World")
-	Api := Book{"firewallforce", ".se"}
-	Api.postApi()
+	// wooApi := WooApiSet.WooApi{Url: "firewallforce.se", ConsumerKey: "ck_42a75ce7a233bc1e341e33779723c304e6d820cc", ConsumerSecret: "cs_6e5a683ab5f08b62aa1894d8d2ddc4ad69ff0526"}
 
-	type Bird struct {
-		Species     string
-		Description string
-	}
+	super := SuperJsonSet.SuperJson{}
+	JsonString := super.ReqBodyToString(req.Body)
 
-	birdJson := `{"species": "pigeoness","description": "likes to perch on rocks"}`
-	var bird Bird
-	json.Unmarshal([]byte(birdJson), &bird)
+	// make json string readable
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(bird)
+	JsonType := super.JsonStringToJson(JsonString)
+	JsonMap := JsonType["products"]
+	readJsonArray(JsonMap)
 
-}
+	// get id by sku
 
-type Book struct {
-	url string
-	ext string
-}
+	// Bundle Information
 
-func (book Book) postApi() {
-
-	values := map[string]string{"Sku": "J9780A"}
-	json_data, err := json.Marshal(values)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	resp, err := http.Post("https://firewallforce.se/wp-json/wc/v3/idbysku", "application/json",
-		bytes.NewBuffer(json_data))
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer resp.Body.Close()
-
-	// var res map[string]interface{}
-	// json.NewDecoder(resp.Body).Decode(&res)
-	// fmt.Println(resp.Body)
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		print(err)
-	}
-
-	fmt.Println(string(body))
+	// update Product
 
 }
 
-func (book Book) getApi() {
+func readJsonArray(JsonMap interface{}) {
 
-	println(`GET Api`)
+	JsonArray, ok := JsonMap.([]interface{})
+	if !ok {
+		log.Fatal("expected an array of objects")
+	}
+	for i, obj := range JsonArray {
+		obj, ok := obj.(map[string]interface{})
+		if !ok {
+			log.Fatalf("expected type map[string]interface{}, got %s", reflect.TypeOf(JsonArray[i]))
+		}
+		// priceInfo := obj["productPriceInfo"]
+		// price := super.Nested(priceInfo, "price")
+		// fmt.Println(price)
+		go idBySku(obj)
 
-	resp, err := http.Get("https://firewallforce.se/wp-json/wc/v3/products/44780?consumer_key=ck_42a75ce7a233bc1e341e33779723c304e6d820cc&consumer_secret=cs_6e5a683ab5f08b62aa1894d8d2ddc4ad69ff0526")
-	if err != nil {
-		log.Fatal(err)
 	}
 
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+}
 
-	if err != nil {
-		log.Fatal(err)
-	}
+func idBySku(Product map[string]interface{}) {
+	wooApi := WooApiSet.WooApi{Url: "", ConsumerKey: "ck_42a75ce7a233bc1e341e33779723c304e6d820cc", ConsumerSecret: "cs_6e5a683ab5f08b62aa1894d8d2ddc4ad69ff0526"}
+	Sku := Product["manufacturerSKU"].(string)
+	id := wooApi.IdBySku(Sku)
+	fmt.Println(id)
+}
 
-	fmt.Println(string(body))
+func HelloWorld(res http.ResponseWriter, req *http.Request) {
 
+	Api := ApiSet.Api{}
+
+	productId := Api.Get("https://firewallforce.se/wp-json/wc/v3/idbysku?sku=R0M67A")
+	fmt.Println(`productId: `, productId)
+
+	currentTime := time.Now()
+	timeF12 := currentTime.Format("2017-09-07 2:3:5 PM")
+	fmt.Println("Short Hour Minute Second: ", timeF12)
+
+	Api.Post(`https://firewallforce.se/wp-json/wc/v3/Products/`+productId+"?consumer_key=ck_42a75ce7a233bc1e341e33779723c304e6d820cc&consumer_secret=cs_6e5a683ab5f08b62aa1894d8d2ddc4ad69ff0526", `{"name":"HP Enterprise ROM67A"}`)
+
+	return
 }
