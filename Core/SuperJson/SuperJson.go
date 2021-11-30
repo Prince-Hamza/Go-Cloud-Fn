@@ -37,7 +37,7 @@ func (super SuperJson) SendJsonResp(w http.ResponseWriter, r *http.Request) {
 // 	return target
 // }
 
-func (super SuperJson) ReqBodyToString(body io.ReadCloser) string {
+func (super SuperJson) Stringify (body io.ReadCloser) string {
 	b, err := io.ReadAll(body)
 	if err != nil {
 		print(err)
@@ -60,7 +60,7 @@ func (super SuperJson) JsonToMap(jsonString string) map[string]interface{} {
 }
 
 func (super SuperJson) ReqBodyToMap(body io.ReadCloser) map[string]interface{} {
-	jsnString := super.ReqBodyToString(body)
+	jsnString := super.Stringify(body)
 	mapify := super.JsonToMap(jsnString)
 	return mapify
 }

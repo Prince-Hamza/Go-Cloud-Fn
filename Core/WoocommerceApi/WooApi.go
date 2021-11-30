@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"sync"
 
 	ApiSet "Main.go/Core/Api"
 	SuperJson "Main.go/Core/SuperJson"
@@ -26,7 +27,7 @@ func (wooApi WooApi) ApiFlow(productJson string) {
 	// wooApi.IdBySku(productMap["manufacturerSKU"])
 }
 
-func (wooApi WooApi) IdBySku(sku string) int {
+func (wooApi WooApi) IdBySku(sku string , wg sync.WaitGroup) int {
 	Api := ApiSet.Api{}
 	productId := Api.Get("https://firewallforce.se/wp-json/wc/v3/idbysku?sku=" + sku + "&consumer_key=" + wooApi.ConsumerKey + "&consumer_secret=" + wooApi.ConsumerSecret)
 	intId, err := strconv.Atoi(productId)
