@@ -2,6 +2,7 @@ package Structures
 
 type ITScopeInfo struct {
 	Products []struct {
+		Id string
 		ManufacturerSKU   string `json:"manufacturerSKU"`
 		ProductSubType    string `json:"productSubType"`
 		SupplierPriceInfo struct {
@@ -31,3 +32,4 @@ type WoocommerceInfo struct {
 		Options []string `json:"options"`
 	} `json:"attributes"`
 }
+
