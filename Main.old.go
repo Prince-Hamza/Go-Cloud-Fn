@@ -1,5 +1,3 @@
-//package p
-
 package main
 
 import (
@@ -32,7 +30,7 @@ var respCount int
 var responseArray []string
 var strReqObjectCount string
 
-func mainold() {
+func mainx() {
 
 	r := mux.NewRouter()
 	r.HandleFunc("/", UpdateFirewallForce)
