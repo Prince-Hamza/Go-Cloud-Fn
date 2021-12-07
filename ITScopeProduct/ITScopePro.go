@@ -13,7 +13,7 @@ import (
 	// "github.com/gorilla/mux"
 	"net/http"
 
-	ApiSet "Main.go/Core/Api"
+	//ApiSet "Main.go/Core/Api"
 	CorsSet "Main.go/Core/Cors"
 	StructSet "Main.go/Core/Structures"
 	SuperJsonSet "Main.go/Core/SuperJson"
@@ -50,14 +50,21 @@ func (ITS ITScopePro) ParseItScopeProduct(res http.ResponseWriter, req *http.Req
 	super := SuperJsonSet.SuperJson{}
 
 	cors.Cors(res, req)
+
+	fmt.Println("stringify")
 	JsonString := super.Stringify(req.Body)
+	fmt.Println("stringify:Done")
 
 	var itScopeJson StructSet.ITScopeInfo
 	err := json.Unmarshal([]byte(JsonString), &itScopeJson) // Json to struct
 	if err != nil {
-		sendError("Failed to Parse Req Body", "Invalid Json", "Valid Json", res)
+		fmt.Println("error in parsing")
+		sendError("Failed to Convert Req Body to ITScope Simplified Structure", "Invalid Json", "Valid Json", res)
 		return
 	}
+
+	fmt.Println("parsing is done")
+	fmt.Println("data", itScopeJson)
 
 	waitGroup.Add(1)
 	go parallelUpdate(itScopeJson, res)
@@ -65,7 +72,15 @@ func (ITS ITScopePro) ParseItScopeProduct(res http.ResponseWriter, req *http.Req
 
 	// send response
 
-	json.NewEncoder(res).Encode(finalInfo)
+	fmt.Println("Wait Over")
+	fmt.Println("Sending Final Response :) ")
+
+	if len(finalInfo) > 0 {
+		json.NewEncoder(res).Encode(finalInfo)
+	} else {
+		json.NewEncoder(res).Encode(`{data : "void" , updated: 0}`)
+	}
+
 	return
 
 }
@@ -79,7 +94,12 @@ func parallelUpdate(itScopeJson StructSet.ITScopeInfo, res http.ResponseWriter) 
 		return
 	}
 
-	for i := 1; i <= len(itScopeJson.Products)-1; i++ {
+	fmt.Println("Attributes Validated Successfully")
+
+	fmt.Println("products length : ", len(itScopeJson.Products))
+
+	for i := 0; i <= len(itScopeJson.Products)-1; i++ {
+		fmt.Println("starting go routine")
 		awaitUpdate.Add(1)
 		go updateRoutine(itScopeJson, i, res)
 	}
@@ -91,33 +111,45 @@ func parallelUpdate(itScopeJson StructSet.ITScopeInfo, res http.ResponseWriter) 
 
 func updateRoutine(itScopeJson StructSet.ITScopeInfo, index int, res http.ResponseWriter) {
 
-	Api := ApiSet.Api{}
+	fmt.Println("update Product routine")
+
+	//Api := ApiSet.Api{}
 	pricePackage := PriceSet.Prices{}
 
 	product := itScopeJson.Products[index]
 
-	productId := Api.Get("https://firewallforce.se/wp-json/wc/v3/idbysku?sku=" + product.ManufacturerSKU + "&consumer_key=" + ConsumerKey + "&consumer_secret=" + ConsumerSecret)
+	//productId := Api.Post("https://firewallforce.se/wp-json/wc/v3/idbysku?consumer_key="+ConsumerKey+"&consumer_secret="+ConsumerSecret, `{"Sku" : "`+product.Sku+`"}`)
+
 	setResponseFields()
 
-	if productId != "0" {
-		finalPrice := pricePackage.GetFinalPrice(product.SupplierPriceInfo.Price)
-		WooProduct := StructSet.WoocommerceInfo{
-			FieldsInResponse: fieldsInResponse,
-			Price:            finalPrice,
-			RegularPrice:     finalPrice,
-			Type:             "simple",
-			ManageStock:      true,
-			StockQuantity:    *product.AggregatedStock,
-			StockStatus:      *product.AggregatedStockStatusText,
-			//Attributes: []struct{ID string "jsonid"  Name string "json:\"name\""; Options []string "json:\"options\""}{},
-		}
+	//	if productId != "0" {
+	finalPrice := pricePackage.GetFinalPrice(*product.Price)
 
-		wooCommerceJson, _ := json.Marshal(WooProduct)
-		wooResponse := Api.Post("https://firewallforce.se/wp-json/wc/v3/products/"+productId+"?"+"consumer_key="+ConsumerKey+"&consumer_secret="+ConsumerSecret, string(wooCommerceJson))
-
-		finalInfo = append(finalInfo, wooResponse)
-		awaitUpdate.Done()
+	WooProduct := StructSet.WoocommerceInfo{
+		FieldsInResponse: fieldsInResponse,
+		Price:            finalPrice,
+		RegularPrice:     finalPrice,
+		Type:             "simple",
+		ManageStock:      true,
+		StockQuantity:    *product.Stock,
+		StockStatus:      *product.StockStatus,
 	}
+
+	// WooProduct.Extra = product.Extra
+	// WooProduct.Attributes = product.Attributes
+
+	wooCommerceJson, _ := json.Marshal(WooProduct)
+	fmt.Println("parsed json : ", string(wooCommerceJson))
+
+
+	//wooResponse := Api.Post("https://firewallforce.se/wp-json/wc/v3/products/"+productId+"?"+"consumer_key="+ConsumerKey+"&consumer_secret="+ConsumerSecret, string(wooCommerceJson))
+
+	//fmt.Println("update response", wooResponse)
+
+	//finalInfo = append(finalInfo, wooResponse)
+	//}
+
+	awaitUpdate.Done()
 
 }
 
@@ -130,34 +162,29 @@ func Validate(itScopeJson StructSet.ITScopeInfo, res http.ResponseWriter) bool {
 
 	for _, product := range itScopeJson.Products {
 
-		if product.AggregatedStock == nil {
+		if product.Stock == nil {
 
-			sendError("Missing Attribute", "Aggregated Stock is Missing", "send Valid Json", res)
+			sendError("Missing Attribute", "Stock is Missing", "send Valid Json", res)
 			return false
 		}
 
-		if product.AggregatedStockStatusText == nil {
-			sendError("Missing Attribute", "Aggregated Stock Status text is Missing", "send Valid Json", res)
+		if product.StockStatus == nil {
+			sendError("Missing Attribute", "Stock Status is Missing", "send Valid Json", res)
 			return false
 		} else {
-			if strings.Contains(*product.AggregatedStockStatusText, "Not") {
-				*product.AggregatedStockStatusText = "outofstock"
+			if strings.Contains(*product.StockStatus, "Not") {
+				*product.StockStatus = "outofstock"
 			} else {
-				*product.AggregatedStockStatusText = "instock"
+				*product.StockStatus = "instock"
 			}
 		}
 
-		// if product.SupplierStockInfo == nil {
-		// 	sendError("Missing Attribute", "supplierStockInfo is Missing", "send Valid Json", res)
-		// 	return false
-		// }
-
-		if product.SupplierPriceInfo == nil {
-			sendError("Missing Attribute", "supplierPriceInfo is Missing", "send Valid Json", res)
+		if product.Price == nil {
+			sendError("Missing Attribute", "Price is Missing", "send Valid Json", res)
 			return false
 		}
 
-		if product.ProductSubType == nil {
+		if product.Category == nil {
 			sendError("Missing Attribute", "productSubType is Missing", "send Valid Json", res)
 			return false
 		}
