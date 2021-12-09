@@ -163,6 +163,7 @@ func updateRoutine(itScopeJson StructSet.ITScopeInfo, index int, res http.Respon
 			WooProduct.Categories = product.Categories
 		}
 		if images == "true" {
+			fmt.Println("including images")
 			WooProduct.Images = product.Images
 		}
 
