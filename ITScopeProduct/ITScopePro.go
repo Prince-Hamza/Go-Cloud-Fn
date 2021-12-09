@@ -3,7 +3,6 @@ package ITScopeProduct
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 	"strings"
 
 	//"log"
@@ -44,14 +43,14 @@ var fieldsInResponse [3]string
 var finalInfo []string
 
 // config
-var create bool
-var update bool
-var titles bool
-var categories bool
-var attributes bool
-var images bool
-var descrption bool
-var priceStock bool = true
+var create string
+var update string
+var titles string
+var categories string
+var attributes string
+var images string
+var descrption string
+var priceStock string = "true"
 
 func (ITS ITScopePro) ParseItScopeProduct(res http.ResponseWriter, req *http.Request) {
 
@@ -64,7 +63,9 @@ func (ITS ITScopePro) ParseItScopeProduct(res http.ResponseWriter, req *http.Req
 
 	fmt.Println("stringify")
 	JsonString := super.Stringify(req.Body)
-	fmt.Println(req.URL.Query().Get("images"))
+
+	setParams(req)
+
 	fmt.Println("stringify:Done")
 
 	var itScopeJson StructSet.ITScopeInfo
@@ -95,6 +96,12 @@ func (ITS ITScopePro) ParseItScopeProduct(res http.ResponseWriter, req *http.Req
 
 	return
 
+}
+
+func setParams(req *http.Request) {
+	images = req.URL.Query().Get("images")
+	categories = req.URL.Query().Get("categories")
+	attributes = req.URL.Query().Get("attributes")
 }
 
 func parallelUpdate(itScopeJson StructSet.ITScopeInfo, res http.ResponseWriter) {
@@ -149,10 +156,15 @@ func updateRoutine(itScopeJson StructSet.ITScopeInfo, index int, res http.Respon
 		}
 
 		// WooProduct.Extra = product.Extra
-		WooProduct.Attributes = product.Attributes
-		x := WooProduct.Attributes[0].ID
-
-		fmt.Println("type of attribs 1 id", reflect.TypeOf(x).Kind())
+		if attributes == "true" {
+			WooProduct.Attributes = product.Attributes
+		}
+		if categories == "true" {
+			WooProduct.Categories = product.Categories
+		}
+		if images == "true" {
+			WooProduct.Images = product.Images
+		}
 
 		wooCommerceJson, _ := json.Marshal(WooProduct)
 		fmt.Println("parsed json : ", string(wooCommerceJson))

@@ -17,11 +17,12 @@ type ITScopeInfo struct {
 		} `json:"attributes"`
 
 		Categories []struct {
-			ID   *int   `json:"id"`
-			Name string `json:"name"`
+			ID int `json:"id"`
 		} `json:"categories"`
+		Images []struct {
+			Src string `json:"src"`
+		} `json:"images"`
 	} `json:"products"`
-	
 }
 
 type WoocommerceInfo struct {
@@ -39,9 +40,11 @@ type WoocommerceInfo struct {
 		Options []string `json:"options"`
 	} `json:"attributes"`
 	Categories []struct {
-		ID   *string `json:"id"`
-		Name string  `json:"name"`
+		ID int `json:"id"`
 	} `json:"categories"`
+	Images []struct {
+		Src string `json:"src"`
+	} `json:"images"`
 }
 
 type FieldsInResponse struct {
