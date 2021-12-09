@@ -11,16 +11,17 @@ type ITScopeInfo struct {
 		StandardHtmlDatasheet *string `json:"standardHtmlDatasheet"`
 		Extra                 *string `json:"extra"`
 		Attributes            []struct {
-			ID      *string  `json:"id"`
+			ID      *int     `json:"id"`
 			Name    string   `json:"name"`
 			Options []string `json:"options"`
 		} `json:"attributes"`
 
 		Categories []struct {
-			ID   *string `json:"id"`
-			Name string  `json:"name"`
+			ID   *int   `json:"id"`
+			Name string `json:"name"`
 		} `json:"categories"`
 	} `json:"products"`
+	
 }
 
 type WoocommerceInfo struct {
@@ -33,7 +34,7 @@ type WoocommerceInfo struct {
 	StockQuantity    string    `json:"stock_quantity"`
 	Extra            *string   `json:"extra"`
 	Attributes       []struct {
-		ID      *string  `json:"id"`
+		ID      *int     `json:"id"`
 		Name    string   `json:"name"`
 		Options []string `json:"options"`
 	} `json:"attributes"`

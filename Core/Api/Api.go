@@ -27,8 +27,8 @@ func (api Api) Get(url string) string {
 		log.Fatal(err)
 	}
 
-	fmt.Println("GET:", url)
-	fmt.Println("Response:", string(body))
+	//fmt.Println("GET:", url)
+	//fmt.Println("Response:", string(body))
 
 	return string(body)
 
@@ -36,7 +36,7 @@ func (api Api) Get(url string) string {
 
 func (api Api) Post(url string, jsonString string) string {
 
-	fmt.Println("POST : ", url)
+	//fmt.Println("POST : ", url)
 
 	json_data := []byte(jsonString)
 	fmt.Println(bytes.NewBuffer(json_data))
@@ -55,7 +55,7 @@ func (api Api) Post(url string, jsonString string) string {
 		fmt.Println(err)
 	}
 
-	fmt.Println(string(body))
+	//fmt.Println(string(body))
 	return string(body)
 
 }

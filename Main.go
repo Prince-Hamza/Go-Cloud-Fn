@@ -1,5 +1,5 @@
-package CloudFun
-// package main
+// package CloudFun
+package main
 
 import (
 	//"encoding/json"
