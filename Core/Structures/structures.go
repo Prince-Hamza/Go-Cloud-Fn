@@ -2,8 +2,11 @@ package Structures
 
 type ITScopeInfo struct {
 	Products []struct {
-		Id                    *string
-		Sku                   string  `json:"Sku"`
+		Id          *string `json:"id"`
+		Title       *string `json:"title"`
+		Description *string `json:"description"`
+
+		Sku                   string  `json:"sku"`
 		Category              *string `json:"category"`
 		Price                 *string `json:"price"`
 		Stock                 *string `json:"stock"`
@@ -27,6 +30,9 @@ type ITScopeInfo struct {
 
 type WoocommerceInfo struct {
 	FieldsInResponse [3]string `json:"fields_in_response"`
+	Name             *string   `json:"name"`
+	Description      *string   `json:"description"`
+	Sku              string    `json:"sku"`
 	Type             string    `json:"type"`
 	RegularPrice     string    `json:"regular_price"`
 	Price            string    `json:"price"`

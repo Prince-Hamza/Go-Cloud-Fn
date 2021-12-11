@@ -3,21 +3,14 @@ package ITScopeProduct
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
-
-	//"log"
-	//"strconv"
-	"sync"
-
-	// "github.com/gorilla/handlers"
-	// "github.com/gorilla/mux"
 	"net/http"
+	"strings"
+	"sync"
 
 	ApiSet "Main.go/Core/Api"
 	CorsSet "Main.go/Core/Cors"
 	StructSet "Main.go/Core/Structures"
 	SuperJsonSet "Main.go/Core/SuperJson"
-	PriceSet "Main.go/ITScopeProduct/Prices"
 	// WooApiSet "Main.go/Core/WoocommerceApi"
 )
 
@@ -58,15 +51,13 @@ func (ITS ITScopePro) ParseItScopeProduct(res http.ResponseWriter, req *http.Req
 
 	cors := CorsSet.CorsAccess{}
 	super := SuperJsonSet.SuperJson{}
-
 	cors.Cors(res, req)
-
-	fmt.Println("stringify")
-	JsonString := super.Stringify(req.Body)
-
 	setParams(req)
+	finalInfo = nil
 
+	JsonString := super.Stringify(req.Body)
 	fmt.Println("stringify:Done")
+	fmt.Println("json strng input: ", JsonString)
 
 	var itScopeJson StructSet.ITScopeInfo
 	err := json.Unmarshal([]byte(JsonString), &itScopeJson) // Json to struct
@@ -77,7 +68,6 @@ func (ITS ITScopePro) ParseItScopeProduct(res http.ResponseWriter, req *http.Req
 	}
 
 	fmt.Println("parsing is done")
-	fmt.Println("data", itScopeJson)
 
 	waitGroup.Add(1)
 	go parallelUpdate(itScopeJson, res)
@@ -102,6 +92,10 @@ func setParams(req *http.Request) {
 	images = req.URL.Query().Get("images")
 	categories = req.URL.Query().Get("categories")
 	attributes = req.URL.Query().Get("attributes")
+	fmt.Println("param:images :: ", images)
+	fmt.Println("param:categories :: ", categories)
+	fmt.Println("param:attribs :: ", attributes)
+
 }
 
 func parallelUpdate(itScopeJson StructSet.ITScopeInfo, res http.ResponseWriter) {
@@ -131,9 +125,10 @@ func parallelUpdate(itScopeJson StructSet.ITScopeInfo, res http.ResponseWriter) 
 func updateRoutine(itScopeJson StructSet.ITScopeInfo, index int, res http.ResponseWriter) {
 
 	fmt.Println("update Product routine")
+	fmt.Println("Sku : " , itScopeJson.Products[index].Sku)
 
 	Api := ApiSet.Api{}
-	pricePackage := PriceSet.Prices{}
+	//pricePackage := PriceSet.Prices{}
 
 	product := itScopeJson.Products[index]
 
@@ -143,12 +138,14 @@ func updateRoutine(itScopeJson StructSet.ITScopeInfo, index int, res http.Respon
 	setResponseFields()
 
 	if productId != "0" {
-		finalPrice := pricePackage.GetFinalPrice(*product.Price)
+		//finalPrice := pricePackage.GetFinalPrice(*product.Price)
+
+		fmt.Println("Product Stock: ", *product.Stock)
 
 		WooProduct := StructSet.WoocommerceInfo{
 			FieldsInResponse: fieldsInResponse,
-			Price:            finalPrice,
-			RegularPrice:     finalPrice,
+			Price:            *product.Price,
+			RegularPrice:     *product.Price,
 			Type:             "simple",
 			ManageStock:      true,
 			StockQuantity:    *product.Stock,
@@ -176,9 +173,47 @@ func updateRoutine(itScopeJson StructSet.ITScopeInfo, index int, res http.Respon
 		fmt.Println("update response", wooResponse)
 
 		finalInfo = append(finalInfo, wooResponse)
+	} else {
+
+
+		WooProduct := StructSet.WoocommerceInfo{
+			Sku: product.Sku,
+			FieldsInResponse: fieldsInResponse,
+			Price:            *product.Price,
+			RegularPrice:     *product.Price,
+			Type:             "simple",
+			ManageStock:      true,
+			StockQuantity:    *product.Stock,
+			StockStatus:      *product.StockStatus,
+		}
+
+		// WooProduct.Extra = product.Extra
+		if attributes == "true" {
+			WooProduct.Attributes = product.Attributes
+		}
+		if categories == "true" {
+			WooProduct.Categories = product.Categories
+		}
+		if images == "true" {
+			fmt.Println("including images")
+			WooProduct.Images = product.Images
+		}
+		WooProduct.Name = product.Title
+		WooProduct.Description = product.Description
+
+		wooCommerceJson, _ := json.Marshal(WooProduct)
+		fmt.Println("parsed json : ", string(wooCommerceJson))
+
+		fmt.Println("creating Product")
+		wooResponse := Api.Post("https://firewallforce.se/wp-json/wc/v3/products?" +"consumer_key="+ConsumerKey+"&consumer_secret="+ConsumerSecret, string(wooCommerceJson))
+
+		fmt.Println("create response", wooResponse)
+
+		finalInfo = append(finalInfo, wooResponse)
+
 	}
 
-	fmt.Println("update: done")
+	fmt.Println("create: done")
 	awaitUpdate.Done()
 
 }
