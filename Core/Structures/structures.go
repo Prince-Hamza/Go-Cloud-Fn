@@ -22,9 +22,10 @@ type ITScopeInfo struct {
 		Categories []struct {
 			ID int `json:"id"`
 		} `json:"categories"`
-		Images []struct {
-			Src string `json:"src"`
-		} `json:"images"`
+		Images []string `json:"images"`
+		WpImages *[]struct {
+           Src string
+		} `json:"wpImages"`
 	} `json:"products"`
 }
 
@@ -48,9 +49,10 @@ type WoocommerceInfo struct {
 	Categories []struct {
 		ID int `json:"id"`
 	} `json:"categories"`
-	Images []struct {
-		Src string `json:"src"`
-	} `json:"images"`
+	// Images []string `json:"images"`
+	Images *[]struct {
+		Src string
+	 } `json:"images"`
 }
 
 type FieldsInResponse struct {

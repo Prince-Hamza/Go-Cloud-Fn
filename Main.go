@@ -1,9 +1,9 @@
- package CloudFun
- //package main
+//package CloudFun
+package main
 
 import (
-	//"encoding/json"
 	ITScopeProduct "Main.go/ITScopeProduct"
+	//"encoding/json"
 	"fmt"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -23,5 +23,4 @@ func ITScopePro(res http.ResponseWriter, req *http.Request) {
 	itScopePro := ITScopeProduct.ITScopePro{}
 	itScopePro.ParseItScopeProduct(res, req)
 }
-
 

@@ -9,6 +9,7 @@ import (
 
 	ApiSet "Main.go/Core/Api"
 	CorsSet "Main.go/Core/Cors"
+	CloudStorage "Main.go/Core/Storage"
 	StructSet "Main.go/Core/Structures"
 	SuperJsonSet "Main.go/Core/SuperJson"
 	// WooApiSet "Main.go/Core/WoocommerceApi"
@@ -125,7 +126,7 @@ func parallelUpdate(itScopeJson StructSet.ITScopeInfo, res http.ResponseWriter) 
 func updateRoutine(itScopeJson StructSet.ITScopeInfo, index int, res http.ResponseWriter) {
 
 	fmt.Println("update Product routine")
-	fmt.Println("Sku : " , itScopeJson.Products[index].Sku)
+	fmt.Println("Sku : ", itScopeJson.Products[index].Sku)
 
 	Api := ApiSet.Api{}
 	//pricePackage := PriceSet.Prices{}
@@ -161,7 +162,7 @@ func updateRoutine(itScopeJson StructSet.ITScopeInfo, index int, res http.Respon
 		}
 		if images == "true" {
 			fmt.Println("including images")
-			WooProduct.Images = product.Images
+			// WooProduct.Images = product.Images
 		}
 
 		wooCommerceJson, _ := json.Marshal(WooProduct)
@@ -175,9 +176,8 @@ func updateRoutine(itScopeJson StructSet.ITScopeInfo, index int, res http.Respon
 		finalInfo = append(finalInfo, wooResponse)
 	} else {
 
-
 		WooProduct := StructSet.WoocommerceInfo{
-			Sku: product.Sku,
+			Sku:              product.Sku,
 			FieldsInResponse: fieldsInResponse,
 			Price:            *product.Price,
 			RegularPrice:     *product.Price,
@@ -196,7 +196,10 @@ func updateRoutine(itScopeJson StructSet.ITScopeInfo, index int, res http.Respon
 		}
 		if images == "true" {
 			fmt.Println("including images")
-			WooProduct.Images = product.Images
+			ImageStruct := uploadImagesRecurv(product.Images)
+			WooProduct.Images = ImageStruct
+			// WooProduct.Images = product.Images
+
 		}
 		WooProduct.Name = product.Title
 		WooProduct.Description = product.Description
@@ -205,7 +208,7 @@ func updateRoutine(itScopeJson StructSet.ITScopeInfo, index int, res http.Respon
 		fmt.Println("parsed json : ", string(wooCommerceJson))
 
 		fmt.Println("creating Product")
-		wooResponse := Api.Post("https://firewallforce.se/wp-json/wc/v3/products?" +"consumer_key="+ConsumerKey+"&consumer_secret="+ConsumerSecret, string(wooCommerceJson))
+		wooResponse := Api.Post("https://firewallforce.se/wp-json/wc/v3/products?"+"consumer_key="+ConsumerKey+"&consumer_secret="+ConsumerSecret, string(wooCommerceJson))
 
 		fmt.Println("create response", wooResponse)
 
@@ -216,6 +219,41 @@ func updateRoutine(itScopeJson StructSet.ITScopeInfo, index int, res http.Respon
 	fmt.Println("create: done")
 	awaitUpdate.Done()
 
+}
+
+var waitImagesGroup sync.WaitGroup = sync.WaitGroup{}
+
+var count int = 0
+var productImages []string
+
+//var imageList
+
+var ImagesList *[]struct {
+	Src string
+}
+var imgJsnStr string = "["
+
+func uploadImagesRecurv(images []string) *[]struct{ Src string } {
+
+	if count <= len(images)-1 {
+		imageUrl := uploadImage(images[count])
+		imgJsnStr += `{"src":"` + imageUrl + `"}`
+		count++
+		uploadImagesRecurv(images)
+		return nil
+	} else {
+		imgJsnStr += "]"
+		json.Unmarshal([]byte(imgJsnStr), ImagesList)
+		imgJsnStr = ""
+		count = 0
+		return ImagesList
+	}
+
+}
+
+func uploadImage(image string) string {
+	cloudUrl := CloudStorage.UploadFromRemoteUrl("random", image)
+	return cloudUrl
 }
 
 func setResponseFields() {
